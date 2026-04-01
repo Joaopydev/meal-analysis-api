@@ -4,7 +4,7 @@ import uuid
 from enum import Enum
 
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer, ForeignKey, Enum as SQLEnum, DateTime, JSON
+from sqlalchemy import String, ForeignKey, Enum as SQLEnum, DateTime, JSON
 
 from .base import Base
 
@@ -56,6 +56,8 @@ class Meal(Base):
         return {
             "id": self.id,
             "status": self.status.value,
+            "input_file_key": self.input_file_key,
+            "input_type": self.input_type.value,
             "name": self.name,
             "icon": self.icon,
             "foods": self.foods,
