@@ -1,3 +1,5 @@
 import aioboto3
 
-sqs_client = aioboto3.client("sqs")
+def get_sqs_client():
+    session = aioboto3.Session()
+    return session.client("sqs")
