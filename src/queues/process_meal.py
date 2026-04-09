@@ -22,6 +22,7 @@ class ProcessMeal:
             status=MealStatus.processing
         )
 
+        # TODO: Implement the logic to process the meal through the AI
         try:
             await self.meal_repository.update_meal_data(
                 meal=meal,
