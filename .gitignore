@@ -17,6 +17,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+alembic/
+alembic.ini
 
 # Serverless directories
 .serverless
