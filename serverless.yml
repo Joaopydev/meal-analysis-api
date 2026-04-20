@@ -33,11 +33,6 @@ provider:
 package:
   individually: true
 
-build:
-  esbuild:
-    minify: true
-    sourcemap: true
-
 functions:
   signin:
     image:
