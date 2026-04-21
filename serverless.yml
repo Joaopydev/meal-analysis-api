@@ -36,7 +36,7 @@ package:
 functions:
   signin:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.signin.handler
     events:
@@ -45,7 +45,7 @@ functions:
           method: POST
   signup:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.signup.handler
     events:
@@ -55,7 +55,7 @@ functions:
 
   me:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.me.handler
     events:
@@ -65,7 +65,7 @@ functions:
 
   createMeal:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.create_meal.handler
     events:
@@ -75,7 +75,7 @@ functions:
 
   listMeals:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.list_meals.handler
     events:
@@ -85,7 +85,7 @@ functions:
 
   getMealById:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.get_meal_by_id.handler
     events:
@@ -95,7 +95,7 @@ functions:
   
   fileUploadEvent:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.file_upload_event.handler
     events:
@@ -107,7 +107,7 @@ functions:
   
   processMeal:
     image:
-      uri: 553004107808.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.process_meal.handler
     events:

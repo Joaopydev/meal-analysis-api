@@ -98,3 +98,4 @@ jobs:
           DATA_BASE_URL: ${{ secrets.DATA_BASE_URL }}
           SECRET_JWT_PRIVATE_KEY: ${{ secrets.SECRET_JWT_PRIVATE_KEY }}
           SECRET_JWT_PUBLIC_KEY: ${{ secrets.SECRET_JWT_PUBLIC_KEY }}
+          ECR_IMAGE_URI: ${{ secrets.ECR_IMAGE_URI }}
