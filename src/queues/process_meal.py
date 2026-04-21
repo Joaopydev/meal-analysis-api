@@ -1,3 +1,5 @@
+import logging
+
 from ..db.models.meals import MealStatus
 from ..utils.http import bad_request
 from ..repository.meal_repository import MealRepository
@@ -52,7 +54,8 @@ class ProcessMeal:
                     }
                 ]
             )
-        except Exception:
+        except Exception as e:
+            logging.error(f"Failed to process meal: {e}")
             await self.meal_repository.update_meal_status(
                 meal_id=meal.id,
                 new_status=MealStatus.failed
