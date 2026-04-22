@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 from botocore.exceptions import ClientError
@@ -14,16 +14,39 @@ load_dotenv()
 class StorageService:
 
     @classmethod
-    def get_presigned_url(cls, method_type: str, file_key: str, content_type: str, expires_in: int = 600) -> str:
+    def get_download_url(cls, file_key: str, expires_in: int = 300) -> str:
+        """To obtain a pre-signed URL for download, no content type parameters are required."""
+        params = {
+            "Bucket": os.getenv("BUCKET_NAME"),
+            "Key": file_key,
+        }
+        return cls._get_presigned_url(
+            method_type="get_object",
+            params=params,
+            expires_in=expires_in,
+        )
+    
+    @classmethod
+    def get_upload_url(cls, file_key: str, content_type: str, expires_in: int = 600) -> str:
+        """Content-Type is required to get pre-signed url for upload"""
+        params = {
+            "Bucket": os.getenv("BUCKET_NAME"),
+            "Key": file_key,
+            "ContentType": content_type
+        }
+        return cls._get_presigned_url(
+            method_type="put_object",
+            params=params,
+            expires_in=expires_in,
+        )
+
+    @classmethod
+    def _get_presigned_url(cls, method_type: str, params: str,  expires_in: int) -> str:
         # Generate pre-signed URL
         try:
             presigned_url = s3_client.generate_presigned_url(
                 method_type,
-                Params={
-                    "Bucket": os.getenv("BUCKET_NAME"),
-                    "Key": file_key,
-                    "ContentType": content_type,
-                },
+                Params=params,
                 ExpiresIn=expires_in,
             )
             return presigned_url

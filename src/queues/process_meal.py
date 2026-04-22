@@ -42,11 +42,7 @@ class ProcessMeal:
                     created_at=meal.created_at
                 )
             elif meal.input_type.value == "picture":
-                image_url = self.storage_service.get_presigned_url(
-                    method_type="get_object",
-                    file_key=file_key,
-                    content_type="image/jpeg",
-                )
+                image_url = self.storage_service.get_download_url(file_key)
                 meal_details = await self.ai_client.get_meal_details_from_image(
                     image_url=image_url,
                     created_at=meal.created_at,
