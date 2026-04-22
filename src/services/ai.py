@@ -9,7 +9,7 @@ client = AsyncOpenAI()
 class AIClient:
 
     @classmethod
-    async def transcribe_audio(cls, audio_data, key: str) -> str:
+    async def transcribe_audio(cls, audio_data: bytes, key: str) -> str:
         try:
             audio_file = io.BytesIO(audio_data)
             audio_file.name = key.split('/')[-1]
@@ -41,7 +41,7 @@ class AIClient:
             - Protein (g)
             - Fat (g)
 
-            Be direct, objective, and avoid explanations. Only return the data in JSON format below:
+            Be direct, objective, and avoid explanations (Do not include any explanation, text, or markdown.). Only return the data in JSON format below:
 
             {
                 "name": "Dinner",
@@ -107,30 +107,30 @@ class AIClient:
             - Protein (g)
             - Fat (g)
 
-            Consider proportions and visible volume to estimate the quantity. When there is uncertainty about the exact type of food (e.g., type of rice, cut of meat), use the most common type. Be direct, objective, and avoid explanations. Only return the data in JSON format below:
+            Consider proportions and visible volume to estimate the quantity. When there is uncertainty about the exact type of food (e.g., type of rice, cut of meat), use the most common type. Be direct, objective, and avoid explanations(Do not include any explanation, text, or markdown.). Only return the data in JSON format below:
 
-            {
+            {{
                 "name": "Dinner",
                 "icon": "🍗",
                 "foods": [
-                    {
+                    {{
                         "name": "Arroz branco",
                         "quantity": "150g",
                         "calories": 100,
                         "carbohydrates": 42,
                         "proteins": 3.5,
-                        "fats": 0.4,
-                    },
-                    {
+                        "fats": 0.4
+                    }},
+                    {{
                         "name": "Frango grelhado",
                         "quantity": "100g",
                         "calories": 165,
                         "carbohydrates": 32,
                         "proteins": 31,
-                        "fats": 3.6,
-                    },
+                        "fats": 3.6
+                    }}
                 ]
-            }
+            }}
         """
         try:
             response = await client.chat.completions.create(
