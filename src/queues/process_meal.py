@@ -46,6 +46,7 @@ class ProcessMeal:
                     image_url=image_url,
                     created_at=meal.created_at,
                 )
+                
             parse_meal_details = json.loads(meal_details)
             await self.meal_repository.update_meal_data(
                 meal_id=meal.id,

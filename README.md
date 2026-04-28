@@ -1,128 +1,193 @@
 # Server API
 
-API serverless em Python baseada em AWS Lambda, empacotada em imagem Docker e orquestrada pelo Serverless Framework.
+Serverless Python API built on AWS Lambda, packaged as a Docker image, and deployed with the Serverless Framework.
 
-Atualmente expõe três endpoints principais de autenticação:
+The project exposes both HTTP endpoints and asynchronous event-driven flows for meal processing:
 
 - **POST `/signin`** – login
-- **POST `/signup`** – cadastro
-- **GET `/me`** – dados do usuário autenticado
+- **POST `/signup`** – signup
+- **GET `/me`** – authenticated user data
+- **POST `/meals`** – create authenticated meal
+- **GET `/meals`** – list authenticated meals
+- **GET `/meals/{meal_id}`** – authenticated meal detail
+
+There are also two event-driven functions:
+
+- **`fileUploadEvent`** – triggered by S3 uploads and sends a message to SQS
+- **`processMeal`** – SQS consumer that processes the uploaded file and persists the meal
 
 ---
 
 ## Stack
 
-- **Linguagem:** Python 3.11  
-- **Runtime:** `public.ecr.aws/lambda/python:3.11`  
-- **Serverless Framework** (deploy para AWS Lambda + API Gateway HTTP API)  
-- **Infra:** AWS Lambda + API Gateway HTTP API  
-- **Banco de dados:** configurado via variável de ambiente `DATA_BASE_URL` (ex.: Postgres, MySQL, etc.)  
-- **Auth:** JWT (chaves configuradas via env `SECRET_JWT_PRIVATE_KEY` e `SECRET_JWT_PUBLIC_KEY`)  
-- **Migrações:** Alembic (`alembic/`)
+- **Language:** Python 3.11
+- **Runtime:** `public.ecr.aws/lambda/python:3.11`
+- **Serverless Framework** (deploys to AWS Lambda + API Gateway HTTP API)
+- **Infrastructure:** AWS Lambda + API Gateway HTTP API + S3 + SQS
+- **Database:** configured via environment variable `DATA_BASE_URL`
+- **Auth:** JWT (keys configured via `SECRET_JWT_PRIVATE_KEY` and `SECRET_JWT_PUBLIC_KEY`)
+- **OpenAI:** `OPENAI_API_KEY` for meal processing AI integration
+- **Migrations:** Alembic (`alembic/`)
 
 ---
 
-## Arquitetura
+## Architecture
 
-Principais diretórios:
+Main directories:
 
-- **`src/functions/`**  
-  - `signin.py` – handler da função Lambda de login  
-  - `signup.py` – handler da função de cadastro  
-  - `me.py` – handler da rota autenticada
+- **`src/functions/`**
+  - `signin.py` – login Lambda handler
+  - `signup.py` – signup Lambda handler
+  - `me.py` – authenticated user Lambda handler
+  - `create_meal.py` – meal creation Lambda handler
+  - `list_meals.py` – meal listing Lambda handler
+  - `get_meal_by_id.py` – meal detail Lambda handler
+  - `file_upload_event.py` – S3-triggered Lambda handler
+  - `process_meal.py` – SQS-triggered Lambda handler
 
-- **`src/controllers/`**  
-  - `SigninController.py`, `SignupController.py`, `MeController.py`  
-  - Contêm a lógica de negócio de cada endpoint.
+- **`src/controllers/`**
+  - Controllers containing business logic for each endpoint and workflow
 
-- **`src/utils/`**  
-  - `parse_event.py`, `parse_protected_event.py` – parse do evento do API Gateway (body, headers, auth, etc.)  
-  - `parse_response.py` – converte a resposta da aplicação em `HTTPResponse` esperado pelo API Gateway  
-  - `http.py` – helpers HTTP (por exemplo, respostas de erro `unauthorized`).
+- **`src/utils/`**
+  - `parse_event.py`, `parse_protected_event.py` – parse API Gateway events and authentication
+  - `parse_response.py` – convert responses to API Gateway format
+  - `http.py` – HTTP helpers and error responses
 
-- **`src/lib/`**  
-  - `jwt.py`, `generate_keys.py` – utilitários de JWT.
+- **`src/services/`**
+  - `ai.py` – OpenAI client
+  - `storage.py` – S3 integration
+  - `hashed_service.py` – password hashing
 
-- **`src/app_types/http.py`**  
-  - Tipos auxiliares para request/response HTTP.
+- **`src/repository/`**
+  - `meal_repository.py`, `user_repository.py` – data access
 
-- **`alembic/` + `alembic.ini`**  
-  - Configuração e scripts de migração do banco.
+- **`src/lib/`**
+  - `jwt.py`, `generate_keys.py` – JWT utilities
+
+- **`alembic/` + `alembic.ini`**
+  - database configuration and migrations
 
 ---
 
-## Handlers das Lambdas
+## Lambda Flow
 
-Cada função Lambda tem um `handler` síncrono que chama um `async_handler` interno:
+### HTTP API
 
-- **Signin** – `src.functions.signin.handler`  
-- **Signup** – `src.functions.signup.handler`  
-- **Me** – `src.functions.me.handler`
+The following functions are exposed via API Gateway HTTP API:
 
-Esses nomes são usados no `serverless.yml` como comando da imagem:
+- `signin` → `POST /signin`
+- `signup` → `POST /signup`
+- `me` → `GET /me`
+- `createMeal` → `POST /meals`
+- `listMeals` → `GET /meals`
+- `getMealById` → `GET /meals/{meal_id}`
+
+Protected routes use `parse_protected_event` to validate the `Authorization: Bearer <token_jwt>` token.
+
+### Asynchronous events
+
+- `fileUploadEvent` is triggered when a new object is created in the S3 bucket `UploadsBucket`.
+- It sends a message to the SQS queue `MealsQueue` with the uploaded object `file_key`.
+- `processMeal` consumes messages from `MealsQueue`, loads the file, processes the meal with AI, and persists the result.
+
+---
+
+## Serverless Lambda Handlers
+
+Each Lambda function defines a synchronous `handler` that calls an internal `async_handler`:
+
+- `src.functions.signin.handler`
+- `src.functions.signup.handler`
+- `src.functions.me.handler`
+- `src.functions.create_meal.handler`
+- `src.functions.list_meals.handler`
+- `src.functions.get_meal_by_id.handler`
+- `src.functions.file_upload_event.handler`
+- `src.functions.process_meal.handler`
+
+In `serverless.yml`, the image command is configured like this:
 
 ```yaml
 functions:
   signin:
     image:
-      uri: <seu-registro>/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.signin.handler
   signup:
     image:
-      uri: <seu-registro>/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.signup.handler
   me:
     image:
-      uri: <seu-registro>/lambda-container:latest
+      uri: ${env:ECR_IMAGE_URI}
       command:
         - src.functions.me.handler
+  createMeal:
+    image:
+      uri: ${env:ECR_IMAGE_URI}
+      command:
+        - src.functions.create_meal.handler
+  listMeals:
+    image:
+      uri: ${env:ECR_IMAGE_URI}
+      command:
+        - src.functions.list_meals.handler
+  getMealById:
+    image:
+      uri: ${env:ECR_IMAGE_URI}
+      command:
+        - src.functions.get_meal_by_id.handler
+  fileUploadEvent:
+    image:
+      uri: ${env:ECR_IMAGE_URI}
+      command:
+        - src.functions.file_upload_event.handler
+  processMeal:
+    image:
+      uri: ${env:ECR_IMAGE_URI}
+      command:
+        - src.functions.process_meal.handler
 ```
 
 ---
 
-## Variáveis de ambiente
+## Environment Variables
 
-Definidas em `serverless.yml`:
+Defined in `serverless.yml`:
 
-- **`DATA_BASE_URL`** – URL de conexão com o banco (ex.: `postgresql+psycopg2://user:pass@host:5432/db`)  
-- **`SECRET_JWT_PRIVATE_KEY`** – chave privada usada para assinar tokens JWT  
-- **`SECRET_JWT_PUBLIC_KEY`** – chave pública para validar tokens JWT  
-
-No ambiente local, podem ser configuradas via `.env` ou direto no shell antes do deploy.
+- **`DATA_BASE_URL`** – database connection URL
+- **`SECRET_JWT_PRIVATE_KEY`** – JWT private key
+- **`SECRET_JWT_PUBLIC_KEY`** – JWT public key
+- **`OPENAI_API_KEY`** – OpenAI API key for meal processing
+- **`BUCKET_NAME`** – S3 uploads bucket name
+- **`MEALS_QUEUE_URL`** – SQS queue URL used by `fileUploadEvent`
+- **`ECR_IMAGE_URI`** – Docker image URI stored in ECR
 
 ---
 
 ## Docker
 
-Imagem base definida em `Dockerfile`:
+The base image is defined in `Dockerfile`:
 
 ```dockerfile
 FROM public.ecr.aws/lambda/python:3.11
 
 COPY requirements.txt ${LAMBDA_TASK_ROOT}/
-
 RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements.txt --target ${LAMBDA_TASK_ROOT}
-
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
 ```
 
-### Build da imagem
+### Build the image
 
-(--platform linux/amd64 --provenance=false) - Torna lambda compatível com imagem docker
-
-```bash 
+```bash
 docker buildx build --platform linux/amd64 --provenance=false -t lambda-container:latest .
 ```
 
-### Push para o ECR
-
-1. Criar/usar um repositório ECR (ex.: `lambda-container`).  
-2. Fazer login no ECR e enviar a imagem:
+### Push to ECR
 
 ```bash
-# exemplo (ajuste account-id, região e tag)
 aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
 
@@ -130,38 +195,32 @@ docker tag lambda-container:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/
 docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/lambda-container:latest
 ```
 
-3. Atualizar o `uri` da imagem em `serverless.yml` se necessário.
-
 ---
 
 ## Serverless Framework
 
-### Requisitos
+### Requirements
 
-- Node.js + npm/yarn  
-- Serverless Framework instalado globalmente:
+- Node.js + npm/yarn
+- Serverless Framework installed globally:
 
 ```bash
 npm install -g serverless
 ```
 
-- AWS CLI configurado (`aws configure`) com credenciais válidas.
+- AWS CLI configured (`aws configure`) with valid credentials.
 
 ### Deploy
-
-Na raiz do projeto:
 
 ```bash
 serverless deploy
 ```
 
-O comando vai:
+This command will create or update the Lambda functions and required resources:
 
-- Criar/atualizar as funções Lambda (`signin`, `signup`, `me`)  
-- Configurar o API Gateway HTTP API com as rotas:
-  - `POST /signin`
-  - `POST /signup`
-  - `GET /me`
+- HTTP functions: `signin`, `signup`, `me`, `createMeal`, `listMeals`, `getMealById`
+- event functions: `fileUploadEvent`, `processMeal`
+- resources: S3 bucket `UploadsBucket`, SQS queue `MealsQueue`, DLQ `MealsDLQ`
 
 ---
 
@@ -169,42 +228,48 @@ O comando vai:
 
 ### `POST /signup`
 
-- **Descrição:** Cria um novo usuário.  
-- **Body (JSON):** campos de cadastro de usuário (ex.: `email`, `password`, etc.).  
-- **Resposta:** deve retornar dados do usuário criado e/ou token de autenticação (detalhes na `SignupController`).
+- **Description:** Creates a new user.
+- **Body (JSON):** `email`, `password`, etc.
+- **Response:** created user data and/or a JWT token.
 
 ### `POST /signin`
 
-- **Descrição:** Autentica um usuário.  
-- **Body (JSON):** credenciais (ex.: `email`, `password`).  
-- **Resposta:** token JWT e, opcionalmente, info básica do usuário.
+- **Description:** Authenticates a user.
+- **Body (JSON):** `email`, `password`.
+- **Response:** JWT token and basic user information.
 
 ### `GET /me`
 
-- **Descrição:** Retorna dados do usuário autenticado.  
-- **Headers:**  
-  - `Authorization: Bearer <token_jwt>`  
-- **Respostas:**  
-  - `200` – dados do usuário.  
-  - `401` – se o token não for enviado ou for inválido:
-    - `{"error": "Access token not provided."}`  
-    - `{"error": "Invalid access token"}`  
+- **Description:** Returns authenticated user data.
+- **Headers:** `Authorization: Bearer <token_jwt>`
+- **Response:** `200` with user data or `401` if invalid.
+
+### `POST /meals`
+
+- **Description:** Creates a new authenticated meal.
+- **Headers:** `Authorization: Bearer <token_jwt>`
+- **Body:** meal creation payload.
+
+### `GET /meals`
+
+- **Description:** Lists authenticated user's meals.
+- **Headers:** `Authorization: Bearer <token_jwt>`
+
+### `GET /meals/{meal_id}`
+
+- **Description:** Retrieves details of an authenticated meal.
+- **Headers:** `Authorization: Bearer <token_jwt>`
+- **Headers:** `Authorization: Bearer <token_jwt>`
 
 ---
 
 ## Desenvolvimento local
 
-Existem duas formas principais:
-
-1. **Executar apenas a lógica de negócio** chamando diretamente controladores/funções Python (útil para testes unitários).  
-2. **Emular Lambda com Docker** usando a imagem base da AWS (opcionalmente com Lambda Runtime Interface Emulator).
-
-Um fluxo simples:
-
-- Criar virtualenv, instalar dependências:
-
 ```bash
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Windows
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+Use testes unitários e o código local diretamente para validar a lógica sem precisar rodar Lambda em produção.
