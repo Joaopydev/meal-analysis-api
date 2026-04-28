@@ -43,7 +43,7 @@ class CreateMealController:
         ext = ".m4a" if data.file_type == FileType.audio else ".jpg"
         file_key = f"{file_id}{ext}"
         
-        presigned_url = await self.storage_service.get_upload_url(
+        presigned_url = self.storage_service.get_upload_url(
             file_key=file_key,
             content_type=data.file_type.value
         )
