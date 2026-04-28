@@ -28,8 +28,6 @@ class ProcessMeal:
             meal_id=meal.id,
             new_status=MealStatus.processing
         )
-
-        # TODO: I need to figure out how to handle timeout in lambda to process meal properly
         try:
             meal_details = ""
             if meal.input_type.value == "audio":

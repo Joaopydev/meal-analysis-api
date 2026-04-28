@@ -8,7 +8,11 @@ client = AsyncOpenAI()
 class AIClient:
 
     @classmethod
-    async def transcribe_audio(cls, audio_data: bytes, key: str) -> str:
+    async def transcribe_audio(
+        cls,
+        audio_data: bytes,
+        key: str
+    ) -> str:
         try:
             audio_file = io.BytesIO(audio_data)
             audio_file.name = key.split('/')[-1]
@@ -23,6 +27,7 @@ class AIClient:
         
     @classmethod
     async def get_meal_details_from_text(
+        cls,
         input: str,
         created_at: datetime,
     ) -> str:
@@ -88,7 +93,11 @@ class AIClient:
             raise RuntimeError(f"Failed to process meal details by text ({e})")
     
     @classmethod
-    async def get_meal_details_from_image(cls, image_url: str, created_at: datetime) -> str:
+    async def get_meal_details_from_image(
+        cls,
+        image_url: str,
+        created_at: datetime
+    ) -> str:
         system_input = f"""
             Meal Date: {created_at}
             
